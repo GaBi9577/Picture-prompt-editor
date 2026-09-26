@@ -1,0 +1,15 @@
+# Node
+node_modules/
+
+# 機密資料
+apikey.local.txt
+
+# 執行期暫存 / 本機資料
+.prompt_storage/
+*.draft.json
+*.tmp
+userData/
+
+# OS
+.DS_Store
+Thumbs.db
