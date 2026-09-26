@@ -9,15 +9,18 @@ function genId() {
   return `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
 }
 
-// 即時預覽：flat 逗號串接
+// 即時預覽：flat 逗號串接。
+// 組裝順序固定使用 window.RENDER_ORDER，不依賴 BLOCKS（UI 顯示順序）或
+// JSON 欄位原本的排列順序 —— 分類標籤本身不會輸出，只取用內容值。
 function buildPreview(blocks) {
-  return window.BLOCKS
-    .map((b) => (blocks[b.key] || '').trim())
+  return window.RENDER_ORDER
+    .map((key) => (blocks[key] || '').trim())
     .filter((t) => t.length > 0)
     .join(', ');
 }
 
-// 送給 LLM 前的帶分類標籤版本，協助翻譯理解語意
+// 送給 LLM 前的帶分類標籤版本，協助翻譯理解語意（僅供 LLM 內部參考用，
+// 非最終輸出，因此沿用 BLOCKS 取得對應的中文 label 即可）
 function buildTaggedPrompt(blocks) {
   return window.BLOCKS
     .map((b) => {
