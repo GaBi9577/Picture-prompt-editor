@@ -65,7 +65,7 @@ async function atomicWrite(destPath, data) {
 ipcMain.handle('dialog:confirm', (_e, message) => {
   const result = dialog.showMessageBoxSync(mainWindow, {
     type: 'question',
-    buttons: ['確定', '取消'],
+    buttons: ['OK', 'Cancel'],
     defaultId: 0,
     cancelId: 1,
     message,
@@ -76,7 +76,7 @@ ipcMain.handle('dialog:confirm', (_e, message) => {
 ipcMain.handle('dialog:alert', (_e, message) => {
   dialog.showMessageBoxSync(mainWindow, {
     type: 'info',
-    buttons: ['確定'],
+    buttons: ['OK'],
     message,
   });
   return true;
@@ -123,8 +123,8 @@ ipcMain.handle('file:new', async () => ({ filePath: null, blocks: null }));
 // ---------- 開啟舊檔 ----------
 ipcMain.handle('file:open', async () => {
   const result = await dialog.showOpenDialog(mainWindow, {
-    title: '開啟舊檔',
-    filters: [{ name: 'Prompt Editor 專案', extensions: ['json'] }],
+    title: 'Open File',
+    filters: [{ name: 'Prompt Editor Project', extensions: ['json'] }],
     properties: ['openFile'],
   });
   if (result.canceled || result.filePaths.length === 0) return null;
@@ -137,9 +137,9 @@ ipcMain.handle('file:open', async () => {
   } catch (e) {
     // 讀取或解析失敗時給使用者友善訊息，而非原始 JS 錯誤
     if (e instanceof SyntaxError) {
-      throw new Error('檔案格式不正確，請確認是否為 Prompt Editor 專案檔（.json）。');
+      throw new Error('Invalid file format. Please confirm this is a Prompt Editor project file (.json).');
     }
-    throw new Error(`無法開啟檔案：${e.message}`);
+    throw new Error(`Failed to open file: ${e.message}`);
   }
 
   // 檢查是否有更新的 crash recovery 暫存檔
@@ -167,8 +167,8 @@ ipcMain.handle('file:clearDraft', async (_e, filePath) => {
 // ---------- 匯入舊版 Prompt ----------
 ipcMain.handle('file:importLegacy', async () => {
   const result = await dialog.showOpenDialog(mainWindow, {
-    title: '匯入舊版 Prompt',
-    filters: [{ name: '文字檔', extensions: ['txt', 'md'] }],
+    title: 'Import Legacy Prompt',
+    filters: [{ name: 'Text Files', extensions: ['txt', 'md'] }],
     properties: ['openFile'],
   });
   if (result.canceled || result.filePaths.length === 0) return null;
@@ -186,8 +186,8 @@ ipcMain.handle('file:save', async (_e, { filePath, blocks }) => {
 // ---------- Save as ----------
 ipcMain.handle('file:saveAs', async (_e, { blocks }) => {
   const result = await dialog.showSaveDialog(mainWindow, {
-    title: '另存新檔',
-    filters: [{ name: 'Prompt Editor 專案', extensions: ['json'] }],
+    title: 'Save As',
+    filters: [{ name: 'Prompt Editor Project', extensions: ['json'] }],
     defaultPath: 'untitled.json',
   });
   if (result.canceled || !result.filePath) return null;
@@ -274,8 +274,8 @@ ipcMain.handle('gallery:list', async () => {
 // 透過檔案選擇對話框匯入（可多選）
 ipcMain.handle('gallery:importDialog', async () => {
   const result = await dialog.showOpenDialog(mainWindow, {
-    title: '上傳圖片',
-    filters: [{ name: '圖片', extensions: ['png', 'jpg', 'jpeg', 'gif', 'webp', 'bmp'] }],
+    title: 'Upload Images',
+    filters: [{ name: 'Images', extensions: ['png', 'jpg', 'jpeg', 'gif', 'webp', 'bmp'] }],
     properties: ['openFile', 'multiSelections'],
   });
   if (result.canceled || result.filePaths.length === 0) return [];
@@ -314,7 +314,7 @@ let geminiAbortCtrl = null;
 ipcMain.handle('gemini:generate', async (_e, { prompt, model }) => {
   const apiKey = await readLocalApiKey();
   if (!apiKey) {
-    return { error: '尚未設定 Gemini API Key，請於專案根目錄的 apikey.local.txt 填入你的金鑰。' };
+    return { error: 'Gemini API Key not set. Please enter your key in apikey.local.txt at the project root.' };
   }
 
   geminiAbortCtrl = new AbortController();
@@ -334,13 +334,13 @@ ipcMain.handle('gemini:generate', async (_e, { prompt, model }) => {
     if (!res.ok) {
       let hint;
       if (res.status === 400 || res.status === 403) {
-        hint = 'API Key 無效或無權限，請確認 apikey.local.txt 內的金鑰是否正確。';
+        hint = 'Invalid or unauthorized API Key. Please check the key in apikey.local.txt.';
       } else if (res.status === 404) {
-        hint = `找不到模型「${useModel}」，請至 https://generativelanguage.googleapis.com/v1beta/models?key=你的KEY 確認此金鑰可用的模型名稱。`;
+        hint = `Model "${useModel}" not found. Check https://generativelanguage.googleapis.com/v1beta/models?key=YOUR_KEY for models available to this key.`;
       } else if (res.status === 429) {
-        hint = '已超過 Gemini 免費額度限制，請稍後再試。';
+        hint = 'Gemini free-tier quota exceeded. Please try again later.';
       } else {
-        hint = `Gemini 回應錯誤 (HTTP ${res.status})`;
+        hint = `Gemini returned an error (HTTP ${res.status})`;
       }
       return { error: hint };
     }
@@ -348,12 +348,12 @@ ipcMain.handle('gemini:generate', async (_e, { prompt, model }) => {
     const data = await res.json();
     const text = data?.candidates?.[0]?.content?.parts?.map((p) => p.text || '').join('') || '';
     if (!text) {
-      return { error: 'Gemini 未回傳有效內容，請稍後再試。' };
+      return { error: 'Gemini did not return any content. Please try again later.' };
     }
     return { text };
   } catch (e) {
     if (e.name === 'AbortError') return { aborted: true };
-    return { error: '無法連線至 Gemini API，請確認網路連線是否正常。' };
+    return { error: 'Could not connect to the Gemini API. Please check your network connection.' };
   } finally {
     geminiAbortCtrl = null;
   }

@@ -10,10 +10,10 @@ function genId() {
 }
 
 // 即時預覽：flat 逗號串接。
-// 組裝順序固定使用 window.RENDER_ORDER，不依賴 BLOCKS（UI 顯示順序）或
-// JSON 欄位原本的排列順序 —— 分類標籤本身不會輸出，只取用內容值。
-function buildPreview(blocks) {
-  return window.RENDER_ORDER
+// 組裝順序使用傳入的 renderOrder（未提供則 fallback 內建預設值），
+// 不依賴 BLOCKS（UI 顯示順序）或 JSON 欄位原本的排列順序 —— 分類標籤本身不會輸出，只取用內容值。
+function buildPreview(blocks, renderOrder = window.DEFAULT_RENDER_ORDER) {
+  return renderOrder
     .map((key) => (blocks[key] || '').trim())
     .filter((t) => t.length > 0)
     .join(', ');
@@ -53,6 +53,18 @@ function CopyIcon() {
   return html`<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
     <rect x="9" y="9" width="11" height="11" rx="1.5" />
     <path d="M5 15V5a1.5 1.5 0 0 1 1.5-1.5H15" />
+  </svg>`;
+}
+
+function ChevronUpIcon() {
+  return html`<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M5 15l7-7 7 7" />
+  </svg>`;
+}
+
+function ChevronDownIcon() {
+  return html`<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M5 9l7 7 7-7" />
   </svg>`;
 }
 
@@ -141,17 +153,17 @@ function Toolbar({ filePath, isDirty, onNew, onOpen, onImportLegacy, onSave, onS
   const filename = filePath ? filePath.split(/[/\\]/).pop() : null;
   const displayName = filename
     ? `${filename}${isDirty ? ' *' : ''}`
-    : `（尚未儲存的新專案）${isDirty ? ' *' : ''}`;
+    : `(Untitled project)${isDirty ? ' *' : ''}`;
   const tooltip = filePath || '';
 
   return html`
     <div class="toolbar">
-      <button class="icon-btn" title="新增檔案" onClick=${onNew}><${NewFileIcon} /></button>
-      <button class="icon-btn" title="開啟舊檔" onClick=${onOpen}><${OpenFolderIcon} /></button>
-      <button class="icon-btn" title="匯入舊版 Prompt" onClick=${onImportLegacy}><${ImportIcon} /></button>
+      <button class="icon-btn" title="New" onClick=${onNew}><${NewFileIcon} /></button>
+      <button class="icon-btn" title="Open" onClick=${onOpen}><${OpenFolderIcon} /></button>
+      <button class="icon-btn" title="Import legacy prompt" onClick=${onImportLegacy}><${ImportIcon} /></button>
       <button class="icon-btn" title="Save" onClick=${onSave}><${SaveIcon} /></button>
       <button class="icon-btn" title="Save as" onClick=${onSaveAs}><${SaveAsIcon} /></button>
-      <button class="icon-btn" title="設定" onClick=${onOpenSettings}><${SettingsIcon} /></button>
+      <button class="icon-btn" title="Settings" onClick=${onOpenSettings}><${SettingsIcon} /></button>
       <span class="filepath" title=${tooltip}>${displayName}</span>
     </div>
   `;
@@ -166,8 +178,8 @@ function PresetItem({ item, onInsert, onEdit, onDelete }) {
     <div class="preset-item-row">
       <div class="preset-item" title=${tooltip} onClick=${onInsert}>${item.name}</div>
       <div class="preset-item-actions">
-        <button class="icon-btn-xs" title="編輯" onClick=${onEdit}><${EditIcon} /></button>
-        <button class="icon-btn-xs" title="刪除" onClick=${onDelete}><${TrashIcon} /></button>
+        <button class="icon-btn-xs" title="Edit" onClick=${onEdit}><${EditIcon} /></button>
+        <button class="icon-btn-xs" title="Delete" onClick=${onDelete}><${TrashIcon} /></button>
       </div>
     </div>
   `;
@@ -179,7 +191,7 @@ function PresetPanel({ presets, activeBlock, onInsert, onEdit, onDelete }) {
 
   return html`
     <div class="preset-panel">
-      <h3>詞庫 — ${blockLabel}</h3>
+      <h3>Preset Library — ${blockLabel}</h3>
       <div class="preset-list">
         ${items.map((item) => html`
           <${PresetItem}
@@ -192,8 +204,8 @@ function PresetPanel({ presets, activeBlock, onInsert, onEdit, onDelete }) {
         )}
         ${items.length === 0 && html`
           <div class="preset-empty">
-            目前此分類尚無詞庫項目。<br/>
-            在右側對應區塊選取文字後，點擊「新增至詞庫」即可建立。
+            No preset items in this category yet.<br/>
+            Select text in the block on the right, then click "Add to Preset" to create one.
           </div>`}
       </div>
     </div>
@@ -217,14 +229,14 @@ function EditorBlock({ block, value, isActive, onChange, onFocus, onAddPreset })
       <div class="block-header">
         <span class="block-label">${block.label}</span>
         <button class="small-btn" onClick=${handleAddPreset}>
-          <${BookPlusIcon} /> 新增至詞庫
+          <${BookPlusIcon} /> Add to Preset
         </button>
       </div>
       <textarea
         ref=${textareaRef}
         rows="3"
         value=${value}
-        placeholder="可輸入中英文混合內容..."
+        placeholder="Mixed Chinese/English input allowed..."
         onFocus=${() => onFocus(block.key)}
         onChange=${(e) => onChange(block.key, e.target.value)}
       ></textarea>
@@ -244,16 +256,16 @@ function PresetSaveModal({ blockLabel, initialText, onCancel, onSave }) {
   return html`
     <div class="modal-backdrop">
       <div class="modal">
-        <h3>新增至詞庫 — ${blockLabel}</h3>
-        <label>縮寫概述（命名）</label>
+        <h3>Add to Preset — ${blockLabel}</h3>
+        <label>Short name (label)</label>
         <input value=${name} onInput=${(e) => setName(e.target.value)} />
-        <label>英文內容（輸出用）</label>
+        <label>English content (output)</label>
         <textarea rows="3" value=${english} onInput=${(e) => setEnglish(e.target.value)}></textarea>
-        <label>註解（顯示用，選填）</label>
+        <label>Note (display only, optional)</label>
         <textarea rows="2" value=${note} onInput=${(e) => setNote(e.target.value)}></textarea>
         <div class="modal-actions">
-          <button onClick=${onCancel}>取消</button>
-          <button disabled=${!canSave} onClick=${() => onSave({ id: genId(), name: name.trim(), english: english.trim(), note: note.trim() })}>儲存</button>
+          <button onClick=${onCancel}>Cancel</button>
+          <button disabled=${!canSave} onClick=${() => onSave({ id: genId(), name: name.trim(), english: english.trim(), note: note.trim() })}>Save</button>
         </div>
       </div>
     </div>
@@ -272,16 +284,16 @@ function PresetEditModal({ blockLabel, item, onCancel, onSave }) {
   return html`
     <div class="modal-backdrop">
       <div class="modal">
-        <h3>編輯詞庫 — ${blockLabel}</h3>
-        <label>縮寫概述（命名）</label>
+        <h3>Edit Preset — ${blockLabel}</h3>
+        <label>Short name (label)</label>
         <input value=${name} onInput=${(e) => setName(e.target.value)} />
-        <label>英文內容（輸出用）</label>
+        <label>English content (output)</label>
         <textarea rows="3" value=${english} onInput=${(e) => setEnglish(e.target.value)}></textarea>
-        <label>註解（顯示用，選填）</label>
+        <label>Note (display only, optional)</label>
         <textarea rows="2" value=${note} onInput=${(e) => setNote(e.target.value)}></textarea>
         <div class="modal-actions">
-          <button onClick=${onCancel}>取消</button>
-          <button disabled=${!canSave} onClick=${() => onSave({ ...item, name: name.trim(), english: english.trim(), note: note.trim() })}>儲存</button>
+          <button onClick=${onCancel}>Cancel</button>
+          <button disabled=${!canSave} onClick=${() => onSave({ ...item, name: name.trim(), english: english.trim(), note: note.trim() })}>Save</button>
         </div>
       </div>
     </div>
@@ -289,10 +301,66 @@ function PresetEditModal({ blockLabel, item, onCancel, onSave }) {
 }
 
 // =============================================================================
+// Render Order 排序面板（可收合，↑↓ 調整最終 Prompt 組裝順序）
+// =============================================================================
+function RenderOrderPanel({ renderOrder, onChange }) {
+  const [open, setOpen] = useState(false);
+
+  const labelOf = (key) =>
+    window.BLOCKS.find((b) => b.key === key)?.label || key;
+
+  const move = (index, direction) => {
+    const target = index + direction;
+    if (target < 0 || target >= renderOrder.length) return;
+    const next = [...renderOrder];
+    [next[index], next[target]] = [next[target], next[index]];
+    onChange(next);
+  };
+
+  const resetToDefault = () => {
+    onChange([...window.DEFAULT_RENDER_ORDER]);
+  };
+
+  return html`
+    <div class="render-order-panel">
+      <button class="render-order-toggle" onClick=${() => setOpen(!open)}>
+        <span>Render Order Setting</span>
+        <${open ? ChevronUpIcon : ChevronDownIcon} />
+      </button>
+      ${open && html`
+        <div class="render-order-body">
+          <ol class="render-order-list">
+            ${renderOrder.map((key, i) => html`
+              <li key=${key} class="render-order-item">
+                <span class="render-order-item-label">${labelOf(key)}</span>
+                <div class="render-order-item-actions">
+                  <button
+                    class="icon-btn"
+                    title="Move up"
+                    disabled=${i === 0}
+                    onClick=${() => move(i, -1)}
+                  ><${ChevronUpIcon} /></button>
+                  <button
+                    class="icon-btn"
+                    title="Move down"
+                    disabled=${i === renderOrder.length - 1}
+                    onClick=${() => move(i, 1)}
+                  ><${ChevronDownIcon} /></button>
+                </div>
+              </li>`
+            )}
+          </ol>
+          <button class="render-order-reset" onClick=${resetToDefault}>Reset to Default</button>
+        </div>`}
+    </div>
+  `;
+}
+
+// =============================================================================
 // 整合輸出區
 // =============================================================================
-function OutputPanel({ blocks, geminiModel, negativePrompt, onNegativePromptChange }) {
-  const preview = buildPreview(blocks);
+function OutputPanel({ blocks, geminiModel, negativePrompt, onNegativePromptChange, renderOrder, onRenderOrderChange }) {
+  const preview = buildPreview(blocks, renderOrder);
   const tagged  = buildTaggedPrompt(blocks);
   const [generated, setGenerated] = useState('');
   const [loading, setLoading]     = useState(false);
@@ -333,7 +401,7 @@ function OutputPanel({ blocks, geminiModel, negativePrompt, onNegativePromptChan
       if (cancelledRef.current) return;
       setLoading(false);
       if (e.message === 'TIMEOUT') {
-        setError('生成逾時（超過 2 分鐘），請確認網路連線是否正常。');
+        setError('Generation timed out (over 2 minutes). Please check your network connection.');
       } else {
         setError(e.message);
       }
@@ -348,9 +416,11 @@ function OutputPanel({ blocks, geminiModel, negativePrompt, onNegativePromptChan
 
   return html`
     <div class="output-panel">
+      <${RenderOrderPanel} renderOrder=${renderOrder} onChange=${onRenderOrderChange} />
+
       <div class="output-header">
-        <h3>整合輸出（即時預覽）</h3>
-        <button class="icon-btn" title="複製" disabled=${!preview} onClick=${() => navigator.clipboard.writeText(preview)}>
+        <h3>Integrated Output (Live Preview)</h3>
+        <button class="icon-btn" title="Copy" disabled=${!preview} onClick=${() => navigator.clipboard.writeText(preview)}>
           <${CopyIcon} />
         </button>
       </div>
@@ -358,9 +428,9 @@ function OutputPanel({ blocks, geminiModel, negativePrompt, onNegativePromptChan
 
       <div class="output-actions">
         <button onClick=${handleGenerate} disabled=${loading || !preview}>
-          ${loading ? '生成中...' : '生成英文 Prompt'}
+          ${loading ? 'Generating...' : 'Generate English Prompt'}
         </button>
-        ${loading && html`<button class="cancel-btn" onClick=${handleCancel}>取消</button>`}
+        ${loading && html`<button class="cancel-btn" onClick=${handleCancel}>Cancel</button>`}
       </div>
 
       ${error && html`<div class="error">${error}</div>`}
@@ -368,8 +438,8 @@ function OutputPanel({ blocks, geminiModel, negativePrompt, onNegativePromptChan
       ${(generated || loading) && html`
         <div>
           <div class="output-header">
-            <h3>全英文 Prompt</h3>
-            <button class="icon-btn" title="複製" disabled=${!generated} onClick=${() => navigator.clipboard.writeText(generated)}>
+            <h3>Full English Prompt</h3>
+            <button class="icon-btn" title="Copy" disabled=${!generated} onClick=${() => navigator.clipboard.writeText(generated)}>
               <${CopyIcon} />
             </button>
           </div>
@@ -379,15 +449,15 @@ function OutputPanel({ blocks, geminiModel, negativePrompt, onNegativePromptChan
       <div class="output-divider"></div>
 
       <div class="output-header">
-        <h3>Negative Prompt<span class="hint-inline">（獨立輸出，不併入上方內容）</span></h3>
-        <button class="icon-btn" title="複製" disabled=${!negativePrompt} onClick=${() => navigator.clipboard.writeText(negativePrompt)}>
+        <h3>Negative Prompt</h3>
+        <button class="icon-btn" title="Copy" disabled=${!negativePrompt} onClick=${() => navigator.clipboard.writeText(negativePrompt)}>
           <${CopyIcon} />
         </button>
       </div>
       <textarea
         class="output-negative"
         rows="4"
-        placeholder="輸入不想出現的內容，例如：blurry, extra fingers, watermark"
+        placeholder="Enter content you don't want, e.g.: blurry, extra fingers, watermark"
         value=${negativePrompt}
         onInput=${(e) => onNegativePromptChange(e.target.value)}
       ></textarea>
@@ -435,7 +505,7 @@ function GalleryPanel({ showToast }) {
   const handleImportDialog = async () => {
     const added = await window.api.galleryImportDialog();
     if (added.length > 0) {
-      showToast(`已新增 ${added.length} 張圖片`, 'success');
+      showToast(`${added.length} image(s) added`, 'success');
       await refresh();
     }
   };
@@ -449,10 +519,10 @@ function GalleryPanel({ showToast }) {
     if (paths.length === 0) return;
     const added = await window.api.galleryImportPaths(paths);
     if (added.length > 0) {
-      showToast(`已新增 ${added.length} 張圖片`, 'success');
+      showToast(`${added.length} image(s) added`, 'success');
       await refresh();
     } else {
-      showToast('未偵測到可匯入的圖片格式', 'error');
+      showToast('No importable image format detected', 'error');
     }
   };
 
@@ -470,7 +540,7 @@ function GalleryPanel({ showToast }) {
 
   const handleDelete = async (e, id) => {
     e.stopPropagation();
-    if (!(await window.api.dialogConfirm('確定要刪除這張圖片？'))) return;
+    if (!(await window.api.dialogConfirm('Delete this image?'))) return;
     await window.api.galleryDelete(id);
     setPreview((p) => (p?.id === id ? null : p));
     await refresh();
@@ -489,12 +559,12 @@ function GalleryPanel({ showToast }) {
         <button onClick=${handleImportDialog}><${UploadIcon} /> Upload</button>
       </div>
 
-      ${loading && html`<div class="gallery-empty-hint">載入中...</div>`}
+      ${loading && html`<div class="gallery-empty-hint">Loading...</div>`}
 
       ${!loading && items.length === 0 && html`
         <div class="gallery-empty-hint">
           <${UploadIcon} />
-          <p>尚無圖片，將檔案拖曳到此處，或點擊右上角 Upload</p>
+          <p>No images yet. Drag files here, or click Upload in the top right.</p>
         </div>`}
 
       ${!loading && items.length > 0 && html`
@@ -502,14 +572,14 @@ function GalleryPanel({ showToast }) {
           ${items.map((item) => html`
             <div key=${item.id} class="gallery-thumb" onClick=${() => setPreview(item)}>
               <img src=${item.url} alt=${item.originalName} loading="lazy" />
-              <button class="icon-btn-xs gallery-thumb-delete" title="刪除" onClick=${(e) => handleDelete(e, item.id)}>
+              <button class="icon-btn-xs gallery-thumb-delete" title="Delete" onClick=${(e) => handleDelete(e, item.id)}>
                 <${TrashLargeIcon} />
               </button>
             </div>`
           )}
         </div>`}
 
-      ${dragOver && html`<div class="gallery-drop-overlay">放開以上傳圖片</div>`}
+      ${dragOver && html`<div class="gallery-drop-overlay">Drop to upload</div>`}
     </div>
 
     ${preview && html`
@@ -517,8 +587,8 @@ function GalleryPanel({ showToast }) {
         <div class="gallery-preview" onClick=${(e) => e.stopPropagation()}>
           <div class="modal-header">
             <span class="gallery-preview-name">${preview.originalName}</span>
-            <button class="icon-btn modal-close" title="在資料夾中開啟" onClick=${() => window.api.galleryShowInFolder(preview.id)}><${OpenFolderIcon} /></button>
-            <button class="icon-btn modal-close" title="關閉" onClick=${() => setPreview(null)}><${CloseIcon} /></button>
+            <button class="icon-btn modal-close" title="Show in folder" onClick=${() => window.api.galleryShowInFolder(preview.id)}><${OpenFolderIcon} /></button>
+            <button class="icon-btn modal-close" title="Close" onClick=${() => setPreview(null)}><${CloseIcon} /></button>
           </div>
           <img src=${preview.url} alt=${preview.originalName} />
         </div>
@@ -536,18 +606,18 @@ function SettingsPanel({ settings, onChange, onClose }) {
     <div class="modal-backdrop">
       <div class="modal" onClick=${(e) => e.stopPropagation()}>
         <div class="modal-header">
-          <h3>外觀設定</h3>
-          <button class="icon-btn modal-close" title="關閉" onClick=${onClose}><${CloseIcon} /></button>
+          <h3>Appearance Settings</h3>
+          <button class="icon-btn modal-close" title="Close" onClick=${onClose}><${CloseIcon} /></button>
         </div>
-        <label>背景漸層 — 上方（暗）</label>
+        <label>Background Gradient — Top (Dark)</label>
         <input type="color" value=${gradient.top}    onInput=${(e) => onChange({ gradient: { top:    e.target.value } })} />
-        <label>背景漸層 — 下方（亮）</label>
+        <label>Background Gradient — Bottom (Light)</label>
         <input type="color" value=${gradient.bottom} onInput=${(e) => onChange({ gradient: { bottom: e.target.value } })} />
 
-        <h3 style=${{ marginTop: '12px' }}>Gemini 設定</h3>
-        <label>模型名稱（例如 gemini-3.6-flash）</label>
+        <h3 style=${{ marginTop: '12px' }}>Gemini Settings</h3>
+        <label>Model name (e.g. gemini-3.6-flash)</label>
         <input value=${geminiModel} onInput=${(e) => onChange({ geminiModel: e.target.value })} />
-        <p class="hint">API Key 請至專案根目錄的 <code>apikey.local.txt</code> 填寫，此檔案不會被更新覆蓋。</p>
+        <p class="hint">Set your API Key in <code>apikey.local.txt</code> at the project root. This file is never overwritten by updates.</p>
       </div>
     </div>
   `;
@@ -575,6 +645,7 @@ function App() {
   const [settings, setSettings]   = useState({
     gradient:    { top: '#1a1820', bottom: '#3a4a5c' },
     geminiModel: 'gemini-3.6-flash',
+    renderOrder: [...window.DEFAULT_RENDER_ORDER],
   });
 
   // Modal: { type: 'add'|'edit', blockKey, item?, initialText? }
@@ -598,7 +669,7 @@ function App() {
   // ---------- isDirty 檢查 ----------
   const confirmIfDirty = async () => {
     if (!isDirty) return true;
-    return window.api.dialogConfirm('目前有未儲存的變更，確定要繼續？變更將會遺失。');
+    return window.api.dialogConfirm('You have unsaved changes. Continue anyway? Changes will be lost.');
   };
 
   // ---------- 啟動時初始化 ----------
@@ -615,13 +686,14 @@ function App() {
           ...prev,
           ...loadedSettings,
           gradient: { ...prev.gradient, ...(loadedSettings.gradient || {}) },
+          renderOrder: window.resolveRenderOrder(loadedSettings.renderOrder),
         }));
       }
 
       // 檢查未儲存新專案的暫存內容（只有實際有輸入內容才提示，避免空白暫存誤判）
       const unsaved = await window.api.autosaveCheckUnsaved();
       if (unsaved && hasContent(unsaved.blocks)) {
-        const restore = await window.api.dialogConfirm('偵測到上次未正常關閉時殘留的暫存內容，是否要復原？');
+        const restore = await window.api.dialogConfirm('Found leftover draft content from an unexpected shutdown. Restore it?');
         if (restore) {
           setBlocks({ ...window.emptyBlocks(), ...unsaved.blocks });
           setIsDirty(true);
@@ -641,7 +713,7 @@ function App() {
   useEffect(() => {
     const name = filePath
       ? filePath.split(/[/\\]/).pop()
-      : '新專案';
+      : 'Untitled project';
     document.title = `${name}${isDirty ? ' *' : ''} — Prompt Editor`;
   }, [filePath, isDirty]);
 
@@ -694,7 +766,7 @@ function App() {
     try {
       result = await window.api.openFile();
     } catch (e) {
-      showToast('開啟檔案失敗：' + e.message);
+      showToast('Failed to open file: ' + e.message);
       return;
     }
     // 使用者取消對話框或讀取失敗時 result 為 null，不清除任何暫存
@@ -708,7 +780,7 @@ function App() {
 
     let finalBlocks = { ...window.emptyBlocks(), ...result.blocks };
     if (result.draft && hasContent(result.draft.blocks)) {
-      const restore = await window.api.dialogConfirm('偵測到此檔案有比正式存檔更新的暫存內容，是否要復原？');
+      const restore = await window.api.dialogConfirm('Found a draft newer than the saved file. Restore it?');
       if (restore) {
         finalBlocks = { ...window.emptyBlocks(), ...result.draft.blocks };
       }
@@ -726,7 +798,7 @@ function App() {
     try {
       text = await window.api.importLegacyPrompt();
     } catch (e) {
-      showToast('匯入失敗：' + e.message);
+      showToast('Import failed: ' + e.message);
       return;
     }
     if (text === null) return;
@@ -735,7 +807,7 @@ function App() {
       return { ...prev, category: cur ? `${cur}, ${text}` : text };
     });
     setIsDirty(true);
-    await window.api.dialogAlert('已將舊版 Prompt 放入「分類」區塊，請手動剪下並分配到對應的區塊中。');
+    await window.api.dialogAlert('Legacy prompt has been placed in the "Category" block. Please cut and redistribute it into the appropriate blocks manually.');
   };
 
   // ---------- Save ----------
@@ -744,9 +816,9 @@ function App() {
     try {
       await window.api.saveFile({ filePath, blocks });
       setIsDirty(false);
-      showToast('已儲存', 'success');
+      showToast('Saved', 'success');
     } catch (e) {
-      showToast('儲存失敗：' + e.message);
+      showToast('Save failed: ' + e.message);
     }
   };
   handleSaveRef.current = handleSave;
@@ -757,13 +829,13 @@ function App() {
     try {
       newPath = await window.api.saveFileAs({ blocks });
     } catch (e) {
-      showToast('另存新檔失敗：' + e.message);
+      showToast('Save as failed: ' + e.message);
       return;
     }
     if (newPath) {
       setFilePath(newPath);
       setIsDirty(false);
-      showToast('已另存新檔', 'success');
+      showToast('Saved as new file', 'success');
     }
   };
   handleSaveAsRef.current = handleSaveAs;
@@ -774,7 +846,7 @@ function App() {
     try {
       await window.api.presetsSave(updated);
     } catch (e) {
-      showToast('詞庫儲存失敗：' + e.message);
+      showToast('Failed to save preset: ' + e.message);
     }
   };
 
@@ -804,7 +876,7 @@ function App() {
   };
 
   const handlePresetDelete = async (blockKey, id) => {
-    if (!(await window.api.dialogConfirm('確定要刪除這個詞庫項目？'))) return;
+    if (!(await window.api.dialogConfirm('Delete this preset item?'))) return;
     const updated = {
       ...presets,
       [blockKey]: (presets[blockKey] || []).filter((p) => p.id !== id),
@@ -843,7 +915,7 @@ function App() {
       />
 
       <div class="tab-bar">
-        <button class="tab-btn ${activeTab === 'editor' ? 'active' : ''}" onClick=${() => setActiveTab('editor')}>編輯器</button>
+        <button class="tab-btn ${activeTab === 'editor' ? 'active' : ''}" onClick=${() => setActiveTab('editor')}>Editor</button>
         <button class="tab-btn ${activeTab === 'gallery' ? 'active' : ''}" onClick=${() => setActiveTab('gallery')}>Gallery</button>
       </div>
 
@@ -876,6 +948,8 @@ function App() {
             geminiModel=${settings.geminiModel}
             negativePrompt=${blocks.negativePrompt}
             onNegativePromptChange=${(v) => handleBlockChange('negativePrompt', v)}
+            renderOrder=${settings.renderOrder}
+            onRenderOrderChange=${(order) => handleSettingsChange({ renderOrder: order })}
           />
         </div>`}
 
