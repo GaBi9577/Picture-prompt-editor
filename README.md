@@ -1,5 +1,7 @@
 # 繪圖提示詞編輯器 (Prompt Editor)
 
+依照 `prompt_editer_design_v2.md` 規格實作的 Electron + React 桌面應用。
+
 ## 安裝與啟動
 
 ```bash
@@ -18,6 +20,9 @@ npm start
 1. 至 [Google AI Studio](https://aistudio.google.com/apikey) 免費取得 API Key
 2. 開啟專案根目錄的 `apikey.local.txt`，將 Key 貼在說明行下方
 3. 儲存即可，不需重啟應用程式（下次呼叫時會重新讀檔）
+
+`apikey.local.txt` 是獨立檔案，**每次專案更新覆蓋時都會被排除**，
+所以 Key 不會遺失（打包指令見 `HANDOFF.md`）。
 
 若尚未設定 Key，按下「生成英文 Prompt」會顯示錯誤提示，
 不影響其他功能（即時中英混合預覽、存檔、詞庫等皆可正常使用）。
@@ -52,6 +57,7 @@ prompt-editor/
 
 ## 已知簡化 / 待確認事項
 
-* 專案存檔格式為 `.json`（內含 `{ blocks: {...} }`），非純 Markdown。
+* 專案存檔格式為 `.json`（內含 `{ blocks: {...} }`），非純 Markdown，
+  以符合規格 3.1「需包含介面所有輸入狀態以便完全還原」。
 * 區塊間以英文逗號 `, ` 拼接做為即時預覽。
 * Gemini 連線失敗或 Key 未設定時僅顯示錯誤訊息，不影響其餘功能。

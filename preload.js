@@ -13,18 +13,16 @@ contextBridge.exposeInMainWorld('api', {
   settingsLoad: ()        => ipcRenderer.invoke('settings:load'),
   settingsSave: (s)       => ipcRenderer.invoke('settings:save', s),
 
-  // 檔案操作
-  newFile:           ()  => ipcRenderer.invoke('file:new'),
+  // 檔案操作（openFile 回傳陣列，每筆含 filePath 與 blocks/draft，或 error）
   openFile:          ()  => ipcRenderer.invoke('file:open'),
   saveFile:          (p) => ipcRenderer.invoke('file:save',        p),
   saveFileAs:        (p) => ipcRenderer.invoke('file:saveAs',      p),
-  clearDraft:        (p) => ipcRenderer.invoke('file:clearDraft',  p),
   importLegacyPrompt:()  => ipcRenderer.invoke('file:importLegacy'),
 
   // 自動暫存 (crash recovery)
   autosaveWrite:        (p) => ipcRenderer.invoke('autosave:write',        p),
-  autosaveCheckUnsaved: ()  => ipcRenderer.invoke('autosave:checkUnsaved'),
-  autosaveClearUnsaved: ()  => ipcRenderer.invoke('autosave:clearUnsaved'),
+  autosaveListUntitled: ()  => ipcRenderer.invoke('autosave:listUntitled'),
+  draftClear:           (p) => ipcRenderer.invoke('draft:clear',           p),
 
   // 雲端 LLM (Gemini)
   geminiGenerate: (p) => ipcRenderer.invoke('gemini:generate', p),

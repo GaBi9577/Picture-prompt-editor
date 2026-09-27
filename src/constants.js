@@ -1,26 +1,29 @@
 // 主編輯區的區塊定義（規格書 2.3 / 3.2）。
 // 注意：這裡的陣列順序只決定「UI 顯示順序」（左側詞庫面板、主編輯區塊排列），
-// 不再決定輸出拼接順序 —— 拼接順序由下方獨立的 window.RENDER_ORDER 控制。
-// 兩者刻意解耦：以後只需要調整 RENDER_ORDER 就能改變最終 Prompt 組裝順序，
-// 不會牽動使用者已經熟悉的 UI 操作排列。
+// 不再決定輸出拼接順序 —— 拼接順序由下方的 window.DEFAULT_RENDER_ORDER（內建預設）
+// 與使用者可自訂的 renderOrder（存於 settings.json）共同決定，見 resolveRenderOrder()。
+// 兩者刻意解耦：調整輸出順序不會牽動使用者已經熟悉的 UI 操作排列。
 window.BLOCKS = [
-  { key: 'category', label: '分類' },
-  { key: 'character', label: '角色' },
-  { key: 'outfit', label: '角色穿著' },
-  { key: 'spatialRelationship', label: '空間關係' },
-  { key: 'actionPose', label: '動作與姿勢' },
-  { key: 'expression', label: '表情' },
-  { key: 'background', label: '環境背景' },
-  { key: 'lighting', label: '光影氛圍' },
-  { key: 'composition', label: '構圖與鏡頭' },
-  { key: 'style', label: '風格與畫質' },
+  { key: 'category', label: 'Category' },
+  { key: 'character', label: 'Character' },
+  { key: 'outfit', label: 'Outfit' },
+  { key: 'spatialRelationship', label: 'Spatial Relationship' },
+  { key: 'actionPose', label: 'Action & Pose' },
+  { key: 'expression', label: 'Expression' },
+  { key: 'background', label: 'Background' },
+  { key: 'lighting', label: 'Lighting & Atmosphere' },
+  { key: 'composition', label: 'Composition & Camera' },
+  { key: 'style', label: 'Style & Quality' },
 ];
 
 // 最終 Positive Prompt 的組裝順序（僅列 key，順序即拼接順序）。
-// category 保留在最前面作為輔助欄位（畫面媒介類型，如 illustration/photo），
-// 不計入 ticket 定義的 10 個正式分類，但仍需要有固定位置參與輸出。
+// category 保留在可排序清單內（畫面媒介類型，如 illustration/photo），
+// 使用者可自由調整它的位置，不強制固定最前面。
 // negativePrompt 不在此列表中：它永遠獨立處理，不進入 positive prompt 組裝流程。
-window.RENDER_ORDER = [
+//
+// 這是「內建預設值」，使用者可在 UI 上自訂順序（存於 settings.json 的
+// renderOrder 欄位，全域共用、跨專案），實際生效順序見 resolveRenderOrder()。
+window.DEFAULT_RENDER_ORDER = [
   'category',
   'character',
   'outfit',
@@ -32,6 +35,24 @@ window.RENDER_ORDER = [
   'composition',
   'style',
 ];
+
+// 正規化使用者自訂的 render order：
+// - 過濾掉不再存在的舊 key（例如未來若某分類被移除）
+// - 補回任何缺漏的 key（例如未來新增分類時，舊 settings.json 不會有它）
+// - 保底：輸入完全無效時，直接回傳內建預設值
+// 統一經過這個函式，UI 呈現與 buildPreview 才能保證兩者永遠是同一份、完整的 key 集合 (DRY)
+window.resolveRenderOrder = function resolveRenderOrder(customOrder) {
+  const valid = new Set(window.DEFAULT_RENDER_ORDER);
+  const cleaned = Array.isArray(customOrder)
+    ? customOrder.filter((key) => valid.has(key))
+    : [];
+  const missing = window.DEFAULT_RENDER_ORDER.filter((key) => !cleaned.includes(key));
+  const result = [...cleaned, ...missing];
+  // 理論上 result 長度必等於 DEFAULT_RENDER_ORDER，這裡只是防禦性保底
+  return result.length === window.DEFAULT_RENDER_ORDER.length
+    ? result
+    : window.DEFAULT_RENDER_ORDER;
+};
 
 // 產生空的區塊內容物件 { category: '', character: '', ..., negativePrompt: '' }
 // negativePrompt 刻意不放進 BLOCKS 陣列：不參與主要 flat 輸出/標籤化 prompt/詞庫，

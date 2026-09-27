@@ -30,10 +30,51 @@ html, body {
   backdrop-filter: blur(6px);
 }
 
-.toolbar .filepath {
-  margin-left: auto;
-  font-size: 12px;
+/* 檔案分頁列（與 Editor / Gallery 檢視切換分開一排） */
+.doc-tab-bar {
+  display: flex;
+  align-items: flex-end;
+  gap: 4px;
+  padding: 6px 12px 0;
+  background: rgba(37, 37, 38, 0.3);
+  border-bottom: 1px solid rgba(74, 74, 74, 0.5);
+  overflow-x: auto;
+}
+
+.doc-tab {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  max-width: 220px;
+  padding: 4px 6px 4px 10px;
+  border: 1px solid transparent;
+  border-bottom: none;
+  border-radius: 6px 6px 0 0;
   color: #9a9a9a;
+  font-size: 13px;
+  cursor: pointer;
+  user-select: none;
+}
+
+.doc-tab:hover {
+  background: rgba(74, 74, 74, 0.3);
+  color: #e0e0e0;
+}
+
+.doc-tab--active {
+  background: rgba(37, 37, 38, 0.6);
+  border-color: rgba(74, 74, 74, 0.5);
+  color: #e0e0e0;
+}
+
+.doc-tab-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.doc-tab-add {
+  margin-bottom: 2px;
 }
 
 button {
@@ -393,13 +434,6 @@ input[type='color'] {
   margin: 4px 0;
 }
 
-.hint-inline {
-  font-size: 11px;
-  font-weight: normal;
-  color: #999;
-  margin-left: 6px;
-}
-
 .output-panel textarea {
   width: 100%;
   resize: vertical;
@@ -410,6 +444,91 @@ input[type='color'] {
   padding: 6px;
   font-size: 13px;
   font-family: inherit;
+}
+
+/* Render Order 排序面板（整合輸出上方，預設收合） */
+.render-order-panel {
+  border: 1px solid rgba(58, 58, 58, 0.6);
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.render-order-toggle {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: rgba(58, 58, 58, 0.35);
+  border: none;
+  color: #e0e0e0;
+  font-size: 14px;
+  font-weight: bold;
+  font-family: inherit;
+  padding: 6px 10px;
+  cursor: pointer;
+}
+
+.render-order-toggle:hover {
+  background: rgba(58, 58, 58, 0.55);
+}
+
+.render-order-body {
+  padding: 8px 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.render-order-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.render-order-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: #1e1e1e;
+  border: 1px solid #3a3a3a;
+  border-radius: 4px;
+  padding: 4px 8px;
+  font-size: 13px;
+}
+
+.render-order-item {
+  cursor: grab;
+  justify-content: flex-start;
+}
+
+.render-order-item--dragging {
+  opacity: 0.4;
+}
+
+.render-order-item .drag-handle {
+  display: inline-flex;
+  color: #777;
+  margin-right: 8px;
+}
+
+.render-order-reset {
+  align-self: flex-start;
+  background: transparent;
+  border: 1px solid #3a3a3a;
+  color: #999;
+  border-radius: 4px;
+  font-size: 12px;
+  font-family: inherit;
+  padding: 4px 10px;
+  cursor: pointer;
+}
+
+.render-order-reset:hover {
+  color: #e0e0e0;
+  border-color: #5a5a5a;
 }
 
 .error {
@@ -483,6 +602,18 @@ input[type='color'] {
   display: flex;
   flex-direction: column;
   gap: 6px;
+}
+
+.modal--wide {
+  width: 640px;
+  max-width: 90vw;
+}
+
+.json-input {
+  min-height: 320px;
+  font-family: Consolas, 'Courier New', monospace;
+  font-size: 12px;
+  resize: vertical;
 }
 
 .modal h3 {

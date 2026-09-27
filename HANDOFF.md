@@ -37,8 +37,11 @@ prompt-editor/
 ├── preload.js          # contextBridge → window.api
 ├── start.bat            # 雙擊啟動（npm start）
 └── src/
-    ├── index.html      # 載入 UMD 依賴與 app.js
+    ├── index.html      # 載入 UMD 依賴與各 script
+    ├── html.js         # 全域 htm 樣板函式 window.html
     ├── constants.js    # BLOCKS 定義（9 個編輯區塊）
+    ├── icons.js        # Heroicons (MIT) 圖示路徑與 <Icon> 元件
+    ├── projectJson.js  # 貼上 JSON 文字的解析與驗證
     ├── styles.css      # 深色主題 + 半透明玻璃風格
     └── app.js          # 所有 React 元件（htm 語法）
 ```
@@ -51,8 +54,8 @@ prompt-editor/
 |------|------|------|
 | 詞庫 | `userData/presets.json` | 全域共用，含備份 `.bak` |
 | 設定 | `userData/settings.json` | 背景漸層色、Gemini 模型名稱 |
-| 暫存 | `<專案路徑>.draft.json` | Crash recovery，非正式存檔 |
-| 新專案暫存 | `userData/unsaved.draft.json` | 尚未存檔的新專案 |
+| 暫存 | `<專案路徑>.draft.json` | Crash recovery，只在分頁有未儲存變更時寫入 |
+| 未命名分頁暫存 | `userData/drafts/<tabId>.draft.json` | 尚未存檔的分頁，每個分頁一個檔案 |
 
 所有寫入都是**原子寫入**（先寫 `.tmp` 再 rename）。
 
