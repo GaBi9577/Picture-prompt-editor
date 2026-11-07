@@ -677,3 +677,47 @@ input[type='color'] {
   gap: 8px;
   margin-top: 10px;
 }
+
+
+/* 可展開文字輸入框 */
+.expandable-textarea {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+  width: 100%;
+  min-width: 0;
+}
+
+.expandable-textarea > textarea {
+  flex: 1;
+  min-width: 0;
+  min-height: 31px;
+  height: 31px;
+  overflow: hidden;
+  resize: none;
+  line-height: 18px;
+}
+
+.expandable-textarea--expanded {
+  align-items: stretch;
+}
+
+.expandable-textarea--expanded > textarea {
+  min-height: 54px;
+  overflow-y: auto;
+  resize: vertical;
+}
+
+.textarea-expand-btn {
+  flex: 0 0 auto;
+  align-self: flex-start;
+  min-width: 42px;
+  padding: 5px 6px;
+  font-size: 11px;
+  line-height: 18px;
+  white-space: nowrap;
+}
+
+.expandable-textarea--expanded .textarea-expand-btn {
+  align-self: flex-start;
+}

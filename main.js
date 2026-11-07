@@ -1,4 +1,4 @@
-const { app, BrowserWindow, ipcMain, dialog, shell } = require('electron');
+const { app, BrowserWindow, ipcMain, dialog, shell, Menu } = require('electron');
 const path = require('path');
 const fs = require('fs/promises');
 
@@ -15,6 +15,28 @@ function createWindow() {
     },
   });
   mainWindow.loadFile(path.join(__dirname, 'src', 'index.html'));
+
+  // 所有可編輯欄位與唯讀文字欄位共用 Electron 原生右鍵選單
+  mainWindow.webContents.on('context-menu', (_event, params) => {
+    const isTextField = params.isEditable || (params.inputFieldType && params.inputFieldType !== 'none') || !!params.selectionText;
+    if (!isTextField) return;
+
+    const flags = params.editFlags || {};
+    const hasSelection = !!params.selectionText;
+    const template = [
+      { role: 'undo', enabled: !!flags.canUndo },
+      { role: 'redo', enabled: !!flags.canRedo },
+      { type: 'separator' },
+      { role: 'cut', enabled: !!flags.canCut },
+      { role: 'copy', enabled: !!flags.canCopy || hasSelection },
+      { role: 'paste', enabled: !!params.isEditable && !!flags.canPaste },
+      { role: 'delete', enabled: !!params.isEditable && !!flags.canDelete },
+      { type: 'separator' },
+      { role: 'selectAll', enabled: true },
+    ];
+
+    Menu.buildFromTemplate(template).popup({ window: mainWindow });
+  });
 }
 
 app.whenReady().then(createWindow);

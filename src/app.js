@@ -157,6 +157,59 @@ function PresetPanel({ presets, activeBlock, onInsert, onEdit, onDelete }) {
   `;
 }
 
+
+// =============================================================================
+// 可展開文字輸入框：預設單行，展開後依內容高度並額外保留一行
+// =============================================================================
+function AutoExpandTextarea({
+  value = '',
+  onChange,
+  placeholder = '',
+  className = '',
+  readOnly = false,
+  textareaRef: externalRef,
+  onFocus,
+}) {
+  const [expanded, setExpanded] = useState(false);
+  const internalRef = useRef(null);
+  const ref = externalRef || internalRef;
+
+  useEffect(() => {
+    const ta = ref.current;
+    if (!ta) return;
+    if (!expanded) {
+      ta.style.height = '';
+      return;
+    }
+    ta.style.height = 'auto';
+    const styles = window.getComputedStyle(ta);
+    const lineHeight = parseFloat(styles.lineHeight) || 18;
+    ta.style.height = `${ta.scrollHeight + lineHeight}px`;
+  }, [value, expanded]);
+
+  return html`
+    <div class=${'expandable-textarea' + (expanded ? ' expandable-textarea--expanded' : '')}>
+      <textarea
+        ref=${ref}
+        rows=${expanded ? 2 : 1}
+        value=${value}
+        placeholder=${placeholder}
+        readOnly=${readOnly}
+        class=${className}
+        onFocus=${onFocus}
+        onInput=${(e) => onChange && onChange(e.target.value)}
+      ></textarea>
+      <button
+        type="button"
+        class="textarea-expand-btn"
+        title=${expanded ? 'Collapse' : 'Expand'}
+        aria-label=${expanded ? 'Collapse text field' : 'Expand text field'}
+        onClick=${() => setExpanded((v) => !v)}
+      >${expanded ? '收合' : '展開'}</button>
+    </div>
+  `;
+}
+
 // =============================================================================
 // 主編輯區單一區塊
 // =============================================================================
@@ -177,14 +230,13 @@ function EditorBlock({ block, value, isActive, onChange, onFocus, onAddPreset })
           <${Icon} name="add" size=${13} /> Add to Preset
         </button>
       </div>
-      <textarea
-        ref=${textareaRef}
-        rows="3"
+      <${AutoExpandTextarea}
+        textareaRef=${textareaRef}
         value=${value}
         placeholder="Mixed Chinese/English input allowed..."
         onFocus=${() => onFocus(block.key)}
-        onChange=${(e) => onChange(block.key, e.target.value)}
-      ></textarea>
+        onChange=${(v) => onChange(block.key, v)}
+      />
     </div>
   `;
 }
@@ -205,9 +257,9 @@ function PresetSaveModal({ blockLabel, initialText, onCancel, onSave }) {
         <label>Short name (label)</label>
         <input value=${name} onInput=${(e) => setName(e.target.value)} />
         <label>English content (output)</label>
-        <textarea rows="3" value=${english} onInput=${(e) => setEnglish(e.target.value)}></textarea>
+        <${AutoExpandTextarea} value=${english} onChange=${setEnglish} />
         <label>Note (display only, optional)</label>
-        <textarea rows="2" value=${note} onInput=${(e) => setNote(e.target.value)}></textarea>
+        <${AutoExpandTextarea} value=${note} onChange=${setNote} />
         <div class="modal-actions">
           <button onClick=${onCancel}>Cancel</button>
           <button disabled=${!canSave} onClick=${() => onSave({ id: genId(), name: name.trim(), english: english.trim(), note: note.trim() })}>Save</button>
@@ -233,9 +285,9 @@ function PresetEditModal({ blockLabel, item, onCancel, onSave }) {
         <label>Short name (label)</label>
         <input value=${name} onInput=${(e) => setName(e.target.value)} />
         <label>English content (output)</label>
-        <textarea rows="3" value=${english} onInput=${(e) => setEnglish(e.target.value)}></textarea>
+        <${AutoExpandTextarea} value=${english} onChange=${setEnglish} />
         <label>Note (display only, optional)</label>
-        <textarea rows="2" value=${note} onInput=${(e) => setNote(e.target.value)}></textarea>
+        <${AutoExpandTextarea} value=${note} onChange=${setNote} />
         <div class="modal-actions">
           <button onClick=${onCancel}>Cancel</button>
           <button disabled=${!canSave} onClick=${() => onSave({ ...item, name: name.trim(), english: english.trim(), note: note.trim() })}>Save</button>
@@ -267,12 +319,12 @@ function JsonImportModal({ onCancel, onCreate }) {
           <h3>Create from JSON</h3>
           <button class="icon-btn modal-close" title="Close" onClick=${onCancel}><${Icon} name="close" size=${16} /></button>
         </div>
-        <textarea
-          class="json-input"
+        <${AutoExpandTextarea}
+          className="json-input"
           placeholder=${'{ "blocks": { "category": "...", "character": "..." } }'}
           value=${text}
-          onInput=${(e) => { setText(e.target.value); setError(''); }}
-        ></textarea>
+          onChange=${(v) => { setText(v); setError(''); }}
+        />
         ${error && html`<div class="error">${error}</div>`}
         <p class="hint">Creates an unsaved tab. Use Save as to write it to a file.</p>
         <div class="modal-actions">
@@ -398,7 +450,7 @@ function OutputPanel({ blocks, geminiModel, negativePrompt, onNegativePromptChan
           <${Icon} name="copy" size=${16} />
         </button>
       </div>
-      <textarea class="output-preview" rows="8" readOnly value=${preview}></textarea>
+      <${AutoExpandTextarea} className="output-preview" readOnly value=${preview} />
 
       <div class="output-actions">
         <button onClick=${handleGenerate} disabled=${loading || !preview}>
@@ -417,7 +469,7 @@ function OutputPanel({ blocks, geminiModel, negativePrompt, onNegativePromptChan
               <${Icon} name="copy" size=${16} />
             </button>
           </div>
-          <textarea class="output-generated" rows="8" readOnly value=${generated}></textarea>
+          <${AutoExpandTextarea} className="output-generated" readOnly value=${generated} />
         </div>`}
 
       <div class="output-divider"></div>
@@ -428,13 +480,12 @@ function OutputPanel({ blocks, geminiModel, negativePrompt, onNegativePromptChan
           <${Icon} name="copy" size=${16} />
         </button>
       </div>
-      <textarea
-        class="output-negative"
-        rows="4"
+      <${AutoExpandTextarea}
+        className="output-negative"
         placeholder="Enter content you don't want, e.g.: blurry, extra fingers, watermark"
         value=${negativePrompt}
-        onInput=${(e) => onNegativePromptChange(e.target.value)}
-      ></textarea>
+        onChange=${onNegativePromptChange}
+      />
     </div>
   `;
 }
